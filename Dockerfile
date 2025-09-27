@@ -2,25 +2,24 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build-env
 WORKDIR /app
 
-# Copiar solución y proyecto, restaurar paquetes
-COPY *.sln ./
-COPY PC02/PC02.csproj ./PC02/
+# 1) Copiar el .csproj que está en la raíz y restaurar
+COPY PC02.csproj ./
 RUN dotnet restore
 
-# Copiar todo el código y publicar
+# 2) Copiar todo el código y publicar
 COPY . ./
-RUN dotnet publish PC02/PC02.csproj -c Release -o out
+RUN dotnet publish -c Release -o out
 
 # Stage 2: Runtime
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:9.0
 WORKDIR /app
 
-# Traer artefactos compilados
+# 3) Copiar binarios publicados
 COPY --from=build-env /app/out .
 
-# Variables de entorno para Render
+# 4) Config para Render
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENV ASPNETCORE_URLS=http://0.0.0.0:${PORT}
 
-# El entrypoint arranca la aplicación
+# 5) Arrancar la app (ajusta si tu DLL se llama distinto)
 ENTRYPOINT ["dotnet", "PC02.dll"]
