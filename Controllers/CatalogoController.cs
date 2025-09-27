@@ -4,62 +4,76 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PC02.Data;
 using PC02.Models;
+using Microsoft.AspNetCore.Authorization; 
+
 
 namespace PC02.Controllers
 {
-  public class CatalogoController : Controller
-  {
-    private readonly ApplicationDbContext _ctx;
-    private const int PageSize = 10;
-
-    public CatalogoController(ApplicationDbContext ctx) => _ctx = ctx;
-
-    public async Task<IActionResult> Index(CatalogoFilter filter)
+    public class CatalogoController : Controller
     {
-      if (!ModelState.IsValid)
-        filter.Page = 1;
+        private readonly ApplicationDbContext _ctx;
+        private const int PageSize = 10;
 
-      var query = _ctx.Inmuebles
-        .Where(i => i.Activo);
+        public CatalogoController(ApplicationDbContext ctx) => _ctx = ctx;
 
-      if (!string.IsNullOrWhiteSpace(filter.Ciudad))
-        query = query.Where(i => i.Ciudad == filter.Ciudad);
+        public async Task<IActionResult> Index(CatalogoFilter filter)
+        {
+            if (!ModelState.IsValid)
+                filter.Page = 1;
 
-      if (filter.Tipo.HasValue)
-        query = query.Where(i => i.Tipo == filter.Tipo);
+            var query = _ctx.Inmuebles
+              .Where(i => i.Activo);
 
-      if (filter.PrecioMin.HasValue)
-        query = query.Where(i => i.Precio >= filter.PrecioMin);
+            if (!string.IsNullOrWhiteSpace(filter.Ciudad))
+                query = query.Where(i => i.Ciudad == filter.Ciudad);
 
-      if (filter.PrecioMax.HasValue)
-        query = query.Where(i => i.Precio <= filter.PrecioMax);
+            if (filter.Tipo.HasValue)
+                query = query.Where(i => i.Tipo == filter.Tipo);
 
-      if (filter.DormitoriosMin.HasValue)
-        query = query.Where(i => i.Dormitorios >= filter.DormitoriosMin);
+            if (filter.PrecioMin.HasValue)
+                query = query.Where(i => i.Precio >= filter.PrecioMin);
 
-      var total = await query.CountAsync();
+            if (filter.PrecioMax.HasValue)
+                query = query.Where(i => i.Precio <= filter.PrecioMax);
 
-      var inmuebles = await query
-        .Skip((filter.Page - 1) * PageSize)
-        .Take(PageSize)
-        .ToListAsync();
+            if (filter.DormitoriosMin.HasValue)
+                query = query.Where(i => i.Dormitorios >= filter.DormitoriosMin);
 
-      var vm = new CatalogoViewModel
-      {
-        Filter     = filter,
-        Inmuebles  = inmuebles,
-        PageInfo   = new PageInfo { TotalItems = total, PageSize = PageSize, Page = filter.Page },
-        Ciudades   = await _ctx.Inmuebles.Select(i => i.Ciudad!).Distinct().ToListAsync()
-      };
+            var total = await query.CountAsync();
 
-      return View(vm);
+            var inmuebles = await query
+              .Skip((filter.Page - 1) * PageSize)
+              .Take(PageSize)
+              .ToListAsync();
+
+            var vm = new CatalogoViewModel
+            {
+                Filter = filter,
+                Inmuebles = inmuebles,
+                PageInfo = new PageInfo { TotalItems = total, PageSize = PageSize, Page = filter.Page },
+                Ciudades = await _ctx.Inmuebles.Select(i => i.Ciudad!).Distinct().ToListAsync()
+            };
+
+            return View(vm);
+        }
+
+        [Authorize]
+        public async Task<IActionResult> Details(int id)
+        {
+            var inmueble = await _ctx.Inmuebles
+              .Include(i => i.Reservas)
+              .FirstOrDefaultAsync(i => i.Id == id);
+            if (inmueble == null) return NotFound();
+
+            var vm = new InmuebleDetailViewModel
+            {
+                Inmueble = inmueble,
+                HasActiveReservation = inmueble.Reservas.Any(r => r.FechaExpiracion > DateTime.UtcNow),
+                Feedback = TempData["Feedback"] as string,
+                Success = (TempData["Success"] as bool?) == true
+            };
+            vm.VisitaInput.InmuebleId = id;
+            return View(vm);
+        }
     }
-
-    public async Task<IActionResult> Details(int id)
-    {
-      var inmueble = await _ctx.Inmuebles.FindAsync(id);
-      if (inmueble == null) return NotFound();
-      return View(inmueble);
-    }
-  }
 }

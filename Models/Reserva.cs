@@ -7,10 +7,10 @@ public class Reserva
 
     [Required]
     public int InmuebleId { get; set; }
-    public Inmueble Inmueble { get; set; }
+     public Inmueble Inmueble { get; set; } = null!;
 
     [Required]
-    public string UsuarioId { get; set; }
+        public string UsuarioId { get; set; } = null!;
 
     [Required]
     public DateTime FechaExpiracion { get; set; }
