@@ -1,0 +1,70 @@
+@model PC02.Models.CatalogoViewModel
+
+<form asp-action="Index" method="get">
+  <div asp-validation-summary="ModelOnly"></div>
+
+  <label>Cantidad de Dormitorios ≥</label>
+  <input asp-for="Filter.DormitoriosMin" type="number" min="0" />
+
+  <label>Ciudad</label>
+  <select asp-for="Filter.Ciudad">
+    <option value="">-- todas --</option>
+    @foreach (var c in Model.Ciudades)
+    {
+      <option value="@c">@c</option>
+    }
+  </select>
+
+  <label>Tipo</label>
+  <select asp-for="Filter.Tipo">
+    <option value="">-- todos --</option>
+    @foreach (var t in Enum.GetValues(typeof(PC02.Models.TipoInmueble)))
+    {
+      <option value="@t">@t</option>
+    }
+  </select>
+
+  <label>Precio Min</label>
+  <input asp-for="Filter.PrecioMin" type="number" step="0.01" min="0" />
+
+  <label>Precio Max</label>
+  <input asp-for="Filter.PrecioMax" type="number" step="0.01" min="0" />
+
+  <button type="submit">Filtrar</button>
+</form>
+
+<table>
+  <thead>
+    <tr>
+      <th>Código</th><th>Título</th><th>Ciudad</th><th>Precio</th><th></th>
+    </tr>
+  </thead>
+  <tbody>
+    @foreach (var i in Model.Inmuebles)
+    {
+      <tr>
+        <td>@i.Codigo</td>
+        <td>@i.Titulo</td>
+        <td>@i.Ciudad</td>
+        <td>@i.Precio</td>
+        <td>
+          <a asp-action="Details" asp-route-id="@i.Id">Ver detalle</a>
+        </td>
+      </tr>
+    }
+  </tbody>
+</table>
+
+<div>
+  @for (int p = 1; p <= Model.PageInfo.TotalPages; p++)
+  {
+    <a asp-action="Index" asp-route-page="@p"
+       asp-route-ciudad="@Model.Filter.Ciudad"
+       asp-route-tipo="@Model.Filter.Tipo"
+       asp-route-preciomin="@Model.Filter.PrecioMin"
+       asp-route-preciomax="@Model.Filter.PrecioMax"
+       asp-route-dormitoriosmin="@Model.Filter.DormitoriosMin">
+      @p
+    </a>
+  }
+</div>
