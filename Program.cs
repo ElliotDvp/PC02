@@ -21,7 +21,7 @@ redisOptions.ConnectTimeout    = 5000;
 // Conexión multiplexer reusable
 var muxer = ConnectionMultiplexer.Connect(redisOptions);
 
-// Persistir claves de DataProtection en Redis para evitar errores de cookie
+// Persistir claves de DataProtection en Redis
 builder.Services.AddDataProtection()
     .SetApplicationName("PC02App")
     .PersistKeysToStackExchangeRedis(muxer, "DataProtection-Keys");
@@ -37,8 +37,8 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(_ => muxer);
 // 3) Sesión
 builder.Services.AddSession(opts =>
 {
-    opts.IdleTimeout    = TimeSpan.FromMinutes(30);
-    opts.Cookie.HttpOnly  = true;
+    opts.IdleTimeout       = TimeSpan.FromMinutes(30);
+    opts.Cookie.HttpOnly   = true;
     opts.Cookie.IsEssential = true;
 });
 
@@ -49,22 +49,38 @@ builder.Services.AddDbContext<ApplicationDbContext>(o =>
     o.UseSqlite(defaultConn));
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-// 5) Identity + MVC
+// 5) Identity + MVC (incluye roles)
 builder.Services
     .AddDefaultIdentity<IdentityUser>(o => o.SignIn.RequireConfirmedAccount = true)
+    .AddRoles<IdentityRole>()                     // ← Registramos roles
     .AddEntityFrameworkStores<ApplicationDbContext>();
+
 builder.Services.AddControllersWithViews();
+builder.Services.ConfigureApplicationCookie(opts =>
+{
+    opts.AccessDeniedPath = "/Home/AccessDenied";
+});
 
 var app = builder.Build();
 
-// 6) Seed de datos
+// 6) Seed del rol Broker
+using (var scope = app.Services.CreateScope())
+{
+    var roleMgr = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    if (!await roleMgr.RoleExistsAsync("Broker"))
+    {
+        await roleMgr.CreateAsync(new IdentityRole("Broker"));
+    }
+}
+
+// 7) Seed de datos
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     DbInitializer.Initialize(db);
 }
 
-// 7) Pipeline HTTP
+// 8) Pipeline HTTP
 if (app.Environment.IsDevelopment())
 {
     app.UseMigrationsEndPoint();
