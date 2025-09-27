@@ -1,34 +1,47 @@
-@model PC02.Models.Inmueble
+@model PC02.Models.InmuebleDetailViewModel
+<h2>@Model.Inmueble.Titulo</h2>
+<p>@Model.Inmueble.Ciudad – @Model.Inmueble.Direccion</p>
 
-<div class="container my-5">
-    <div class="card shadow-lg border-0 rounded-4">
-        <div class="card-body p-4">
-            <h2 class="card-title text-primary fw-bold mb-3">
-                @Model.Titulo
-            </h2>
-            <p class="text-muted mb-1">
-                <i class="bi bi-geo-alt-fill text-danger"></i> @Model.Ciudad – @Model.Direccion
-            </p>
-            <p class="mb-2">
-                <span class="badge bg-info text-dark">Tipo: @Model.Tipo</span>
-            </p>
-            <h4 class="text-success fw-bold mb-3">
-                $ @Model.Precio.ToString("N0")
-            </h4>
-            <p class="mb-4">
-                <i class="bi bi-house-door-fill"></i> Dormitorios: <strong>@Model.Dormitorios</strong> &nbsp;|&nbsp; 
-                <i class="bi bi-droplet-half"></i> Baños: <strong>@Model.Banos</strong>
-            </p>
+@if (Model.Feedback != null)
+{
+  var cls = Model.Success ? "alert-success" : "alert-danger";
+  <div class="alert @cls">@Model.Feedback</div>
+}
 
-            <form asp-controller="Visita" asp-action="Create" method="get">
-                <input type="hidden" name="inmuebleId" value="@Model.Id" />
-                <button type="submit" class="btn btn-primary btn-lg rounded-pill px-4 shadow-sm">
-                    <i class="bi bi-calendar-check me-2"></i> Agendar visita
-                </button>
-            </form>
-        </div>
-    </div>
-</div>
+<h4>Agendar visita</h4>
+<form asp-controller="Visita" asp-action="Create" method="post">
+  <input type="hidden" asp-for="VisitaInput.InmuebleId" />
+  <div>
+    <label asp-for="VisitaInput.FechaInicio"></label>
+    <input asp-for="VisitaInput.FechaInicio" type="datetime-local" />
+    <span asp-validation-for="VisitaInput.FechaInicio"></span>
+  </div>
+  <div>
+    <label asp-for="VisitaInput.FechaFin"></label>
+    <input asp-for="VisitaInput.FechaFin" type="datetime-local" />
+    <span asp-validation-for="VisitaInput.FechaFin"></span>
+  </div>
+  <div>
+    <label asp-for="VisitaInput.Notas"></label>
+    <textarea asp-for="VisitaInput.Notas"></textarea>
+  </div>
+  <button type="submit">Agendar visita</button>
+</form>
 
-<!-- Bootstrap Icons (si aún no lo tienes en el layout) -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+<hr />
+
+@if (!Model.HasActiveReservation)
+{
+  <form asp-controller="Reserva" asp-action="Create" method="post">
+    <input type="hidden" name="inmuebleId" value="@Model.Inmueble.Id" />
+    <button type="submit">Reservar ahora (48h)</button>
+  </form>
+}
+else
+{
+  <div class="alert alert-info">Ya hay una reserva activa</div>
+}
+
+@section Scripts {
+  <partial name="_ValidationScriptsPartial" />
+}

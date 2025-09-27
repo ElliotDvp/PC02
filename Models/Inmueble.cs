@@ -33,7 +33,7 @@ namespace PC02.Models
 
         public bool Activo { get; set; } = true;
 
-        public List<Visita>? Visitas { get; set; }
-        public List<Reserva>? Reservas { get; set; }
+        public List<Visita>? Visitas { get; set; }= new();
+        public List<Reserva>? Reservas { get; set; } = new();
     }
 }
